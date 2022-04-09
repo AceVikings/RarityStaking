@@ -84,7 +84,7 @@ contract RarityStaking is Ownable,RaritySigner{
             return 0;
         }
         uint multiplier = 80 + 40*tokenRarity[tokenId]/1000; //Assumption max rarity - min rarity = 1000
-        return (block.timestamp - info.lastClaim) * baseReward * multiplier/100;
+        return (block.timestamp - info.lastClaim) * baseReward * multiplier/100/1 days;
     }
 
     function popTokens(uint tokenId) private {
