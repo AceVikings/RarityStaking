@@ -23,6 +23,7 @@ contract RarityStaking is Ownable,RaritySigner{
     }
 
     bool public Paused;
+    uint baseReward = 1 ether;
 
     mapping(uint=>uint) public tokenRarity;
     mapping(uint=>tokenInfo) public stakedInfo;
@@ -55,6 +56,43 @@ contract RarityStaking is Ownable,RaritySigner{
             userStaked[msg.sender].push(tokenIds[i]);
             NFT.transferFrom(msg.sender,address(this),tokenIds[i]);
         }
+    }
+
+    function unstakeTokens(uint[] memory tokenIds) external {
+        claimRewards(tokenIds);
+        for(uint i=0;i<tokenIds.length;i++){
+            require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
+            NFT.transferFrom(address(this),msg.sender,tokenIds[i]);
+            popTokens(tokenIds[i]);
+            delete stakedInfo[tokenIds[i]];
+        }
+    }
+
+    function claimRewards(uint[] memory tokenIds) public {
+        uint amount;
+        for(uint i=0;i<tokenIds.length;i++){
+            require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
+            amount += getRewards(tokenIds[i]);
+            stakedInfo[tokenIds[i]].lastClaim = block.timestamp;
+        }
+        RewardToken.transfer(msg.sender,amount);
+    }
+
+    function getRewards(uint tokenId) public view returns(uint){
+        tokenInfo storage info = stakedInfo[tokenId];
+        if(info.lastClaim == 0){
+            return 0;
+        }
+        uint multiplier = 80 + 40*tokenRarity[tokenId]/1000; //Assumption max rarity - min rarity = 1000
+        return (block.timestamp - info.lastClaim) * baseReward * multiplier/100;
+    }
+
+    function popTokens(uint tokenId) private {
+        uint lastToken = userStaked[msg.sender][userStaked[msg.sender].length - 1];
+        uint currPos = stakedInfo[tokenId].position;
+        userStaked[msg.sender][currPos] = lastToken;
+        stakedInfo[lastToken].position = currPos;
+        userStaked[msg.sender].pop();
     }
 
     function pauseContract(bool _pause) external onlyOwner{
