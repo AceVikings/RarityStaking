@@ -19,11 +19,13 @@ contract RarityStaking is Ownable,RaritySigner{
     struct tokenInfo{
         address owner;
         uint lastClaim;
+        uint lastRoll;
         uint position;
     }
 
     bool public Paused;
     uint baseReward = 1 ether;
+    uint raffleReward = 1 ether;
 
     mapping(uint=>uint) public tokenRarity;
     mapping(uint=>tokenInfo) public stakedInfo;
@@ -52,7 +54,7 @@ contract RarityStaking is Ownable,RaritySigner{
         for(uint i=0;i<tokenIds.length;i++){
             require(tokenRarity[tokenIds[i]] != 0,"Rarity not initialized");
             require(NFT.ownerOf(tokenIds[i]) == msg.sender,"Sender not owner");
-            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,userStaked[msg.sender].length);
+            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,block.timestamp,userStaked[msg.sender].length);
             userStaked[msg.sender].push(tokenIds[i]);
             NFT.transferFrom(msg.sender,address(this),tokenIds[i]);
         }
@@ -66,6 +68,22 @@ contract RarityStaking is Ownable,RaritySigner{
             popTokens(tokenIds[i]);
             delete stakedInfo[tokenIds[i]];
         }
+    }
+
+    function raffleRoll(uint[] memory tokenIds) external{
+        require(tokenIds.length < 60,"Can roll max 60");
+        uint random = uint(vrf());
+        uint amount = 0;
+        for(uint i=0;i<tokenIds.length;i++){
+            require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
+            uint odds = 1 + 2*tokenRarity[tokenIds[i]]/1000; //Assumption max rarity - min rarity = 1000
+            uint mod = random%100;
+            if (mod < odds){
+                amount += raffleReward;
+            }
+            random /= 10;
+        }
+        RewardToken.transfer(msg.sender,amount);
     }
 
     function claimRewards(uint[] memory tokenIds) public {
@@ -95,8 +113,29 @@ contract RarityStaking is Ownable,RaritySigner{
         userStaked[msg.sender].pop();
     }
 
+    function vrf() private view returns (bytes32 result) {
+        uint256[1] memory bn;
+        bn[0] = block.number;
+        assembly {
+            let memPtr := mload(0x40)
+            if iszero(staticcall(not(0), 0xff, bn, 0x20, memPtr, 0x20)) {
+                invalid()
+            }
+            result := mload(memPtr)
+        }
+        return result;
+    }
+
     function pauseContract(bool _pause) external onlyOwner{
         Paused = _pause;
+    }
+
+    function setBaseReward(uint _reward) external onlyOwner{
+        baseReward = _reward;
+    }
+
+    function setRaffleReward(uint _reward) external onlyOwner{
+        raffleReward = _reward;
     }
 
     function retrieveRewardToken() external onlyOwner{
