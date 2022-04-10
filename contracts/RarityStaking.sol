@@ -76,6 +76,8 @@ contract RarityStaking is Ownable,RaritySigner{
         uint amount = 0;
         for(uint i=0;i<tokenIds.length;i++){
             require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
+            require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= 12 hours,"Rolling too soon");
+            stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
             uint odds = 1 + 2*tokenRarity[tokenIds[i]]/1000; //Assumption max rarity - min rarity = 1000
             uint mod = random%100;
             if (mod < odds){
