@@ -25,7 +25,6 @@ contract RarityStaking is Ownable,RaritySigner{
     }
 
     bool public Paused;
-    uint baseReward = 1 ether;
     uint raffleReward = 1 ether;
 
     mapping(uint=>uint) public tokenRarity;
@@ -162,11 +161,7 @@ contract RarityStaking is Ownable,RaritySigner{
         Paused = _pause;
     }
 
-    function setBaseReward(uint _reward) external onlyOwner{
-        baseReward = _reward;
-    }
-
-      function updateRewards(uint _newRate) external onlyOwner{
+    function updateRewards(uint _newRate) external onlyOwner{
         rate.push(_newRate);
         time.push(block.timestamp);
     }
