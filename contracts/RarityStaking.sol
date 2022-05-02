@@ -21,6 +21,7 @@ contract RarityStaking is Ownable,RaritySigner{
         uint lastClaim;
         uint lastRoll;
         uint position;
+        uint rateIndex;
     }
 
     bool public Paused;
@@ -29,13 +30,18 @@ contract RarityStaking is Ownable,RaritySigner{
 
     mapping(uint=>uint) public tokenRarity;
     mapping(uint=>tokenInfo) public stakedInfo;
-    mapping(address=>uint[]) userStaked;
+    mapping(address=>uint[]) public userStaked;
 
-    address designatedSigner;
+    uint[] public rate;
+    uint[] public time;
+
+    address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
 
     constructor(address _nft,address _rewardToken) {
         NFT = IERC721(_nft);
         RewardToken = IERC20(_rewardToken);
+        rate.push(1 ether);
+        time.push(block.timestamp);
     }
 
     modifier isUnPaused{
@@ -54,7 +60,7 @@ contract RarityStaking is Ownable,RaritySigner{
         for(uint i=0;i<tokenIds.length;i++){
             require(tokenRarity[tokenIds[i]] != 0,"Rarity not initialized");
             require(NFT.ownerOf(tokenIds[i]) == msg.sender,"Sender not owner");
-            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,block.timestamp,userStaked[msg.sender].length);
+            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,block.timestamp,userStaked[msg.sender].length,rate.length-1);
             userStaked[msg.sender].push(tokenIds[i]);
             NFT.transferFrom(msg.sender,address(this),tokenIds[i]);
         }
@@ -78,8 +84,8 @@ contract RarityStaking is Ownable,RaritySigner{
             require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
             require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= 12 hours,"Rolling too soon");
             stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
-            uint odds = 1 + 2*tokenRarity[tokenIds[i]]/1000; //Assumption max rarity - min rarity = 1000
-            uint mod = random%100;
+            uint odds = 10000 + 20000*tokenRarity[tokenIds[i]]/2580383; //Max rarity - Min rarity = 2580383
+            uint mod = random%1000000;
             if (mod < odds){
                 amount += raffleReward;
             }
@@ -94,6 +100,7 @@ contract RarityStaking is Ownable,RaritySigner{
             require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
             amount += getRewards(tokenIds[i]);
             stakedInfo[tokenIds[i]].lastClaim = block.timestamp;
+            stakedInfo[tokenIds[i]].rateIndex = rate.length - 1;
         }
         RewardToken.transfer(msg.sender,amount);
     }
@@ -103,8 +110,27 @@ contract RarityStaking is Ownable,RaritySigner{
         if(info.lastClaim == 0){
             return 0;
         }
-        uint multiplier = 80 + 40*tokenRarity[tokenId]/1000; //Assumption max rarity - min rarity = 1000
-        return (block.timestamp - info.lastClaim) * baseReward * multiplier/100/1 days;
+        uint currentTime;
+        uint collected = 0;
+        for(uint i=info.rateIndex;i<rate.length;i++){
+            if(info.lastClaim < time[i]){
+                if(collected == 0){
+                collected += (time[i] - info.lastClaim) * rate[i-1];
+                }
+                else{
+                collected += (time[i] - time[i-1])*rate[i-1];
+                }
+            }
+            currentTime = i;
+        }
+        if(collected == 0){
+            collected += (block.timestamp - info.lastClaim)*rate[currentTime];
+        }
+        else{
+            collected += (block.timestamp - time[currentTime])*rate[currentTime];
+        }
+        uint multiplier = 80000 + 40000*tokenRarity[tokenId]/2580383; 
+        return collected*multiplier/(100000*1 days);
     }
 
     function popTokens(uint tokenId) private {
@@ -128,12 +154,21 @@ contract RarityStaking is Ownable,RaritySigner{
         return result;
     }
 
+    function getUserStaked(address _user) external view returns(uint[] memory){
+        return userStaked[_user];
+    }
+
     function pauseContract(bool _pause) external onlyOwner{
         Paused = _pause;
     }
 
     function setBaseReward(uint _reward) external onlyOwner{
         baseReward = _reward;
+    }
+
+      function updateRewards(uint _newRate) external onlyOwner{
+        rate.push(_newRate);
+        time.push(block.timestamp);
     }
 
     function setRaffleReward(uint _reward) external onlyOwner{
