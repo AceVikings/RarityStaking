@@ -36,6 +36,8 @@ contract RarityStaking is Ownable,RaritySigner{
 
     address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
 
+    event RaffleWin(address indexed user,uint indexed tokenId,bool win);
+
     constructor(address _nft,address _rewardToken) {
         NFT = IERC721(_nft);
         RewardToken = IERC20(_rewardToken);
@@ -87,6 +89,10 @@ contract RarityStaking is Ownable,RaritySigner{
             uint mod = random%1000000;
             if (mod < odds){
                 amount += raffleReward;
+                emit RaffleWin(msg.sender, tokenIds[i], true);
+            }
+            else{
+                emit RaffleWin(msg.sender, tokenIds[i], false);
             }
             random /= 10;
         }
