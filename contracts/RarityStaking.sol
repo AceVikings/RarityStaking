@@ -85,7 +85,7 @@ contract RarityStaking is Ownable,RaritySigner{
             require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
             require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= 12 hours,"Rolling too soon");
             stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
-            uint odds = 10000 + 20000*tokenRarity[tokenIds[i]]/2580383; //Max rarity - Min rarity = 2580383
+            uint odds = 10000 + 20000*(tokenRarity[tokenIds[i]]-277489)/2580383; //Max rarity - Min rarity = 2580383
             uint mod = random%1000000;
             if (mod < odds){
                 amount += raffleReward;
@@ -134,7 +134,7 @@ contract RarityStaking is Ownable,RaritySigner{
         else{
             collected += (block.timestamp - time[currentTime])*rate[currentTime];
         }
-        uint multiplier = 80000 + 40000*tokenRarity[tokenId]/2580383; 
+        uint multiplier = 80000 + 40000*(tokenRarity[tokenId]-277489)/2580383; 
         return collected*multiplier/(100000*1 days);
     }
 
