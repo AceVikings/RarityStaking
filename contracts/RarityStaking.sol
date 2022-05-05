@@ -34,6 +34,8 @@ contract RarityStaking is Ownable,RaritySigner{
     uint[] public rate;
     uint[] public time;
 
+    uint raffleCooldown = 12 hours;
+
     address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
 
     event RaffleWin(address indexed user,uint indexed tokenId,bool win);
@@ -78,23 +80,29 @@ contract RarityStaking is Ownable,RaritySigner{
     }
 
     function raffleRoll(uint[] memory tokenIds) external{
-        require(tokenIds.length < 60,"Can roll max 60");
-        uint random = uint(vrf());
+        require(msg.sender == tx.origin,"Contracts can't roll");
+        uint length = tokenIds.length;
+        require(length < 900,"Can't roll more than 900 at a time");
+        uint baseRandom = uint(vrf());
         uint amount = 0;
-        for(uint i=0;i<tokenIds.length;i++){
-            require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
-            require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= 12 hours,"Rolling too soon");
-            stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
-            uint odds = 10000 + 20000*(tokenRarity[tokenIds[i]]-277489)/2580383; //Max rarity - Min rarity = 2580383
-            uint mod = random%1000000;
-            if (mod < odds){
-                amount += raffleReward;
-                emit RaffleWin(msg.sender, tokenIds[i], true);
+        for (uint j=0;j<length/60;j++){
+            uint random = uint(keccak256(abi.encode(baseRandom%10000)));
+            baseRandom /= 10000;
+            for(uint i=0;i<length;i++){
+                require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
+                require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= raffleCooldown,"Rolling too soon");
+                stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
+                uint odds = 20000 + 50000*(tokenRarity[tokenIds[i]]-277489)/2580383; //Max rarity - Min rarity = 2580383
+                uint mod = random%1000000;
+                if (mod < odds){
+                    amount += raffleReward;
+                    emit RaffleWin(msg.sender, tokenIds[i], true);
+                }
+                else{
+                    emit RaffleWin(msg.sender, tokenIds[i], false);
+                }
+                random /= 10;
             }
-            else{
-                emit RaffleWin(msg.sender, tokenIds[i], false);
-            }
-            random /= 10;
         }
         RewardToken.transfer(msg.sender,amount);
     }
@@ -170,6 +178,18 @@ contract RarityStaking is Ownable,RaritySigner{
     function updateRewards(uint _newRate) external onlyOwner{
         rate.push(_newRate);
         time.push(block.timestamp);
+    }
+
+    function setNFT(address _nft) external onlyOwner{
+        NFT = IERC721(_nft);
+    }
+
+    function setRewardToken(address _token) external onlyOwner{
+        RewardToken = IERC20(_token);
+    }
+
+    function setRaffleCooldown(uint _time) external onlyOwner{
+        raffleCooldown = _time;
     }
 
     function setRaffleReward(uint _reward) external onlyOwner{
