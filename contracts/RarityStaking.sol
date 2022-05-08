@@ -60,10 +60,13 @@ contract RarityStaking is Ownable,RaritySigner{
     }
 
     function stakeTokens(uint[] memory tokenIds) external isUnPaused{
-        for(uint i=0;i<tokenIds.length;i++){
+        uint length = tokenIds.length;
+        uint rateLength = rate.length;
+        uint userStakedLength = userStaked[msg.sender].length;
+        for(uint i=0;i<length;i++){
             require(tokenRarity[tokenIds[i]] != 0,"Rarity not initialized");
             require(NFT.ownerOf(tokenIds[i]) == msg.sender,"Sender not owner");
-            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,block.timestamp,userStaked[msg.sender].length,rate.length-1);
+            stakedInfo[tokenIds[i]] = tokenInfo(msg.sender,block.timestamp,block.timestamp,userStakedLength+i,rateLength-1);
             userStaked[msg.sender].push(tokenIds[i]);
             NFT.transferFrom(msg.sender,address(this),tokenIds[i]);
         }
@@ -85,10 +88,17 @@ contract RarityStaking is Ownable,RaritySigner{
         require(length < 900,"Can't roll more than 900 at a time");
         uint baseRandom = uint(vrf());
         uint amount = 0;
-        for (uint j=0;j<length/60;j++){
+        for (uint j=0;j<=length/60;j++){
             uint random = uint(keccak256(abi.encode(baseRandom%10000)));
             baseRandom /= 10000;
-            for(uint i=0;i<length;i++){
+            uint end;
+            if(length < 60*(j+1) - 1){
+                end = length;
+            }
+            else{
+                end = 60*(j+1) - 1;
+            }
+            for(uint i=60*j;i<end;i++){
                 require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
                 require(block.timestamp - stakedInfo[tokenIds[i]].lastRoll >= raffleCooldown,"Rolling too soon");
                 stakedInfo[tokenIds[i]].lastRoll = block.timestamp;
