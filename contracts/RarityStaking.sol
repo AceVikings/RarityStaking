@@ -15,6 +15,7 @@ contract RarityStaking is Ownable,RaritySigner{
 
     IERC721 NFT;
     IERC20 RewardToken;
+    IERC20 RaffleToken;
 
     struct tokenInfo{
         address owner;
@@ -26,6 +27,7 @@ contract RarityStaking is Ownable,RaritySigner{
 
     bool public Paused;
     uint raffleReward = 1 ether;
+    uint raffleCooldown = 12 hours;
 
     mapping(uint=>uint) public tokenRarity;
     mapping(uint=>tokenInfo) public stakedInfo;
@@ -34,15 +36,14 @@ contract RarityStaking is Ownable,RaritySigner{
     uint[] public rate;
     uint[] public time;
 
-    uint raffleCooldown = 12 hours;
-
     address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
 
     event RaffleWin(address indexed user,uint indexed tokenId,bool win);
 
-    constructor(address _nft,address _rewardToken) {
+    constructor(address _nft,address _rewardToken,address _raffleToken) {
         NFT = IERC721(_nft);
         RewardToken = IERC20(_rewardToken);
+        RaffleToken = IERC20(_raffleToken);
         rate.push(1 ether);
         time.push(block.timestamp);
     }
@@ -114,7 +115,7 @@ contract RarityStaking is Ownable,RaritySigner{
                 random /= 10;
             }
         }
-        RewardToken.transfer(msg.sender,amount);
+        RaffleToken.transfer(msg.sender,amount);
     }
 
     function claimRewards(uint[] memory tokenIds) public {
@@ -192,6 +193,10 @@ contract RarityStaking is Ownable,RaritySigner{
 
     function setNFT(address _nft) external onlyOwner{
         NFT = IERC721(_nft);
+    }
+
+    function setRaffleToken(address _raffle) external onlyOwner{
+        RaffleToken = IERC20(_raffle);
     }
 
     function setRewardToken(address _token) external onlyOwner{
