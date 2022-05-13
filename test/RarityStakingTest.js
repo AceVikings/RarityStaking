@@ -1,6 +1,7 @@
 const { inputToConfig } = require("@ethereum-waffle/compiler");
 const { expect } = require("chai");
-const { parseEther } = require("ethers/lib/utils");
+const { constants } = require("ethers");
+const { parseEther, formatEther } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 
 describe("Rarity Staking Contract",function(){
@@ -73,6 +74,35 @@ describe("Rarity Staking Contract",function(){
                 expect ((await Staking.getUserStaked(owner.address)).map((value)=>{return parseInt(value)})).to.include(i);
             }
         })
+        it("Should claim rewards",async function(){
+            await network.provider.send("evm_increaseTime", [1*24*60*60])
+            await Staking.claimRewards([1]);
+            // expect (await Staking.getRewards(2)).to.equal(parseEther((10*(80+40*(2277489-277489)/(2859033-277489))).toString()));
+            expect ((await Token.balanceOf(owner.address))).to.not.equal(parseEther("0"));
+            console.log((await Token.balanceOf(owner.address)))
+        })
     })
 
+    describe("Unstaking",function(){
+        it("Should return token to user",async function(){
+            await Staking.unstakeTokens([1]);
+            expect(await NFT.ownerOf(1)).to.equal(owner.address);
+        })
+        it("Should update user staked",async function(){
+            expect((await Staking.getUserStaked(owner.address)).map((value)=>{return parseInt(value)})).to.not.include(1);
+        })
+        it("Should update mapping",async function(){
+            expect ((await Staking.stakedInfo(1))["owner"]).to.equal(constants.AddressZero);
+        })
+    })
+    let tokens = [];
+    for(var j=2;j<100;j++){
+        tokens.push(j);
+    }
+    describe("Raffle Rewards",function(){
+        it("Should raffle",async function(){
+            await Staking.connect(owner).raffleRoll(tokens);
+        })
+    })
+ 
 })
