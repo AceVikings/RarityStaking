@@ -131,7 +131,7 @@ contract RarityStaking is Ownable,RaritySigner{
         RewardToken.transfer(msg.sender,amount);
     }
 
-    function emegencyUnstake(uint[] memory tokenIds) external {
+    function emergencyUnstake(uint[] memory tokenIds) external {
         for(uint i=0;i<tokenIds.length;i++){
             require(stakedInfo[tokenIds[i]].owner == msg.sender,"Sender not owner");
             NFT.transferFrom(address(this),msg.sender,tokenIds[i]);
@@ -239,6 +239,10 @@ contract RarityStaking is Ownable,RaritySigner{
 
     function retrieveRewardToken() external onlyOwner{
         RewardToken.transfer(msg.sender,RewardToken.balanceOf(address(this)));
+    }
+
+    function retrieveRaffleToken() external onlyOwner{
+        RaffleToken.transfer(msg.sender,RaffleToken.balanceOf(address(this)));
     }
 
     function setDesignatedSigner(address _signer) external onlyOwner{
