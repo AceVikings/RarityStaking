@@ -38,6 +38,7 @@ contract RarityStaking is Ownable,RaritySigner{
     uint[2] public raffleOdds = [80000,50000];
     uint[2] public rarityMultiplier = [80000,40000];
     address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
+    address multiSig = 0x8e5C8c48a249B49283C385Be67F93217796EaAdc;
 
     event RaffleWin(address indexed user,uint indexed tokenId,bool win);
 
@@ -237,11 +238,16 @@ contract RarityStaking is Ownable,RaritySigner{
     }
 
     function retrieveRewardToken() external onlyOwner{
-        RewardToken.transfer(msg.sender,RewardToken.balanceOf(address(this)));
+        RewardToken.transfer(multiSig,RewardToken.balanceOf(address(this)));
     }
 
     function retrieveRaffleToken() external onlyOwner{
-        RaffleToken.transfer(msg.sender,RaffleToken.balanceOf(address(this)));
+        RaffleToken.transfer(multiSig,RaffleToken.balanceOf(address(this)));
+    }
+
+    function updateMultisig(address _multisig) external {
+        require(msg.sender == _multisig,"Not multisig");
+        multiSig = _multisig;
     }
 
     function setDesignatedSigner(address _signer) external onlyOwner{
