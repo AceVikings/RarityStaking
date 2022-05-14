@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "./RaritySigner.sol";
-
 contract RarityStaking is Ownable,RaritySigner{
 
     IERC721 NFT;
@@ -36,7 +35,7 @@ contract RarityStaking is Ownable,RaritySigner{
     uint[] public rate;
     uint[] public time;
     uint[2] public edgeRarity = [277489,2859033];
-    uint[2] public raffleOdds = [80000,130000];
+    uint[2] public raffleOdds = [80000,50000];
     uint[2] public rarityMultiplier = [80000,40000];
     address designatedSigner = 0x08042c118719C9889A4aD70bc0D3644fBe288153;
 

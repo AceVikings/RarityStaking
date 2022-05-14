@@ -46,12 +46,12 @@ describe("Rarity Staking Contract",function(){
     describe("Start Staking",function(){
         let rarity = [];
         for(var i=1;i<100;i++){
-            rarity.push([i,2277489,"0x91369e121087da8ce3a93a8fb3130ad45da79788fda60bb017eef42ff61fc49d"])
+            rarity.push([i,2859033,"0x91369e121087da8ce3a93a8fb3130ad45da79788fda60bb017eef42ff61fc49d"])
         }
         it("Should initialize tokens",async function(){
             await Staking.initializeRarity(rarity);
             for(var i=1;i<100;i++){
-                expect(await Staking.tokenRarity(i)).to.equal(2277489);
+                expect(await Staking.tokenRarity(i)).to.equal(2859033);
             }
         })
         let tokens = [];
@@ -102,6 +102,18 @@ describe("Rarity Staking Contract",function(){
     describe("Raffle Rewards",function(){
         it("Should raffle",async function(){
             await Staking.connect(owner).raffleRoll(tokens);
+        })
+    })
+
+    describe("Owner functions",function(){
+        it("Should update owner functions",async function(){
+            await Staking.setEdgeRarity([10,10]);
+        })
+        it("Should update raffle odds",async function(){
+            await Staking.setRaffleOdds([10,10]);
+        })
+        it("Should update rarity multiplier",async function(){
+            await Staking.setRarityMultiplier([10,10]);
         })
     })
  
