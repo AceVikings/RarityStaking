@@ -56,7 +56,7 @@ contract RarityStaking is Ownable,RaritySigner{
 
     function initializeRarity(Rarity[] memory rarity) external {
         for(uint i=0;i<rarity.length;i++){
-            // require(getSigner(rarity[i]) == designatedSigner,"invalid signer");
+            require(getSigner(rarity[i]) == designatedSigner,"invalid signer");
             tokenRarity[rarity[i].tokenId] = rarity[i].rarity;     
         }
     }
